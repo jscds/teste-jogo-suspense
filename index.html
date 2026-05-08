@@ -2,68 +2,143 @@
 <html lang="pt-BR">
 <head>
     <meta charset="utf-8">
-    <title>Meu Jogo de Suspense - Puzzle</title>
+    <title>Jogo de Suspense - Puzzle</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
     <style>
-        body { margin: 0; background: #000; }
+        body { margin: 0; background: #000; overflow: hidden; }
         canvas { display: block; margin: 0 auto; }
     </style>
 </head>
 <body>
     <script>
+        // ==================== CENA 1 - Sala Inicial ====================
+        class Sala1 extends Phaser.Scene {
+            constructor() {
+                super('Sala1');
+            }
+
+            preload() {
+                this.load.image('player', 'https://labs.phaser.io/assets/sprites/phaser-dude.png');
+                this.load.image('door', 'https://labs.phaser.io/assets/sprites/door.png');
+            }
+
+            create() {
+                this.cameras.main.setBackgroundColor('#1a0033');
+
+                // Jogador
+                this.player = this.physics.add.sprite(100, 300, 'player');
+                this.player.setCollideWorldBounds(true);
+
+                // Controles
+                this.cursors = this.input.keyboard.createCursorKeys();
+                this.keyE = this.input.keyboard.addKey('E');
+
+                // Mensagem de boas-vindas
+                this.texto = this.add.text(150, 100, 'Bem-vindo ao Jogo de Suspense...', {
+                    fontSize: '28px',
+                    fill: '#ff3333'
+                }).setShadow(2, 2, '#000', 5);
+
+                // Some após 3 segundos
+                this.time.delayedCall(3000, () => {
+                    this.texto.destroy();
+                });
+
+                // Porta
+                this.porta = this.physics.add.sprite(700, 300, 'door').setScale(0.8);
+                this.porta.body.immovable = true;
+
+                // Texto flutuante acima da porta
+                this.textoPorta = this.add.text(650, 220, 'Pressione E', {
+                    fontSize: '16px',
+                    fill: '#ffff00'
+                }).setVisible(false);
+            }
+
+            update() {
+                this.player.setVelocity(0, 0);   // ← Isso resolve o problema de não parar
+
+                if (this.cursors.left.isDown)  this.player.setVelocityX(-200);
+                if (this.cursors.right.isDown) this.player.setVelocityX(200);
+                if (this.cursors.up.isDown)    this.player.setVelocityY(-200);
+                if (this.cursors.down.isDown)  this.player.setVelocityY(200);
+
+                // Verifica se está perto da porta
+                if (Phaser.Geom.Intersects.RectangleToRectangle(this.player.getBounds(), this.porta.getBounds())) {
+                    this.textoPorta.setVisible(true);
+
+                    if (this.keyE.isDown) {
+                        this.scene.start('Sala2');   // Muda para a segunda sala
+                    }
+                } else {
+                    this.textoPorta.setVisible(false);
+                }
+            }
+        }
+
+        // ==================== CENA 2 - Segunda Sala ====================
+        class Sala2 extends Phaser.Scene {
+            constructor() {
+                super('Sala2');
+            }
+
+            preload() {
+                this.load.image('player', 'https://labs.phaser.io/assets/sprites/phaser-dude.png');
+            }
+
+            create() {
+                this.cameras.main.setBackgroundColor('#003322'); // cor diferente para mostrar que mudou
+
+                this.player = this.physics.add.sprite(100, 300, 'player');
+                this.player.setCollideWorldBounds(true);
+
+                this.cursors = this.input.keyboard.createCursorKeys();
+                this.keyE = this.input.keyboard.addKey('E');
+
+                this.add.text(200, 100, 'Você entrou na Segunda Sala', {
+                    fontSize: '26px',
+                    fill: '#44ff88'
+                });
+
+                // Porta de volta
+                this.portaVolta = this.physics.add.sprite(700, 300, 'door').setScale(0.8);
+
+                this.add.text(650, 220, 'Pressione E para voltar', {
+                    fontSize: '16px',
+                    fill: '#ffff00'
+                });
+            }
+
+            update() {
+                this.player.setVelocity(0, 0);
+
+                if (this.cursors.left.isDown)  this.player.setVelocityX(-200);
+                if (this.cursors.right.isDown) this.player.setVelocityX(200);
+                if (this.cursors.up.isDown)    this.player.setVelocityY(-200);
+                if (this.cursors.down.isDown)  this.player.setVelocityY(200);
+
+                // Voltar para Sala 1
+                if (Phaser.Geom.Intersects.RectangleToRectangle(this.player.getBounds(), this.portaVolta.getBounds())) {
+                    if (this.keyE.isDown) {
+                        this.scene.start('Sala1');
+                    }
+                }
+            }
+        }
+
+        // ==================== Configuração do Jogo ====================
         const config = {
             type: Phaser.AUTO,
             width: 800,
             height: 600,
             physics: {
                 default: 'arcade',
-                arcade: { gravity: { y: 0 }, debug: false }
+                arcade: { debug: false }
             },
-            scene: {
-                preload: preload,
-                create: create,
-                update: update
-            }
+            scene: [Sala1, Sala2]
         };
 
         const game = new Phaser.Game(config);
-
-        let player;
-
-        function preload() {
-            // Aqui você vai carregar imagens e sons depois
-            this.load.image('player', 'https://labs.phaser.io/assets/sprites/phaser-dude.png');
-            this.load.image('wall', 'https://labs.phaser.io/assets/sprites/platform.png');
-        }
-
-        function create() {
-            this.cameras.main.setBackgroundColor('#1a0033'); // fundo escuro roxo (suspense)
-
-            player = this.physics.add.sprite(100, 450, 'player');
-            player.setCollideWorldBounds(true);
-
-            // Controles
-            this.cursors = this.input.keyboard.createCursorKeys();
-
-            // Texto de exemplo
-            this.add.text(200, 100, 'Bem-vindo ao Jogo de Suspense', {
-                fontSize: '28px',
-                fill: '#ff3333'
-            }).setShadow(2, 2, '#000', 5);
-        }
-
-        function update() {
-            if (!player) return;
-
-            player.setVelocityX(0);
-
-            if (this.cursors.left.isDown) player.setVelocityX(-200);
-            if (this.cursors.right.isDown) player.setVelocityX(200);
-            if (this.cursors.up.isDown) player.setVelocityY(-200);
-            if (this.cursors.down.isDown) player.setVelocityY(200);
-            if (this.none) player.setVelocityX(0)
-            if (this.none) player.setVelocityY(0)
-        }
     </script>
 </body>
 </html>
